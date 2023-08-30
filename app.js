@@ -18,14 +18,14 @@ async function getCoordinates(city) {
     const apiEndpoint = `https://nominatim.openstreetmap.org/search?q=${city}&format=json`;
     const fetchPromise = await fetch(apiEndpoint, { mode: "cors" });
     const searchResults = await fetchPromise.json();
+    const cityList = await searchResults.map(city => city.display_name);
+    createDropdownMenu(cityList, dataList)
+    console.log(cityList)
 
     if (!fetchPromise.ok)
       throw new Error("Network response : not okay.");
     if (searchResults.length === 0)
       throw new Error("No such city found!!")
-    // if (searchResults.length !== 1) {
-    //   createDropdownMenu(cityList)
-    // }
 
     const lat = searchResults[0].lat;
     const lon = searchResults[0].lon;
