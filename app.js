@@ -18,32 +18,49 @@ async function getCoordinates(city) {
     const apiEndpoint = `https://nominatim.openstreetmap.org/search?q=${city}&format=json`;
     const fetchPromise = await fetch(apiEndpoint, { mode: "cors" });
     const searchResults = await fetchPromise.json();
-    const cityList = await searchResults.map(city => city.display_name);
-    createDropdownMenu(cityList, dataList)
-    console.log(cityList)
+    console.log(searchResults)
+    const cityList = searchResults.map(city => city.display_name);
 
-    if (!fetchPromise.ok)
-      throw new Error("Network response : not okay.");
-    if (searchResults.length === 0)
-      throw new Error("No such city found!!")
+    // this function will fetch the selected city 
+    const selectedCity = getCity(cityList, dataList);
+    console.log(selectedCity)
 
-    const lat = searchResults[0].lat;
-    const lon = searchResults[0].lon;
-
-    return { lat, lon };
+    // this function will fetch the Lat and Lon of the selected city 
+    return getLL(searchResults, selectedCity);
   }
-
   catch (err) {
     console.error(err);
   }
 }
 
-function createDropdownMenu(cityList, parent) {
+const getLL = (array, city) => {
+  const index = array.findIndex(obj => obj.display_name === city);
+  console.log(index)
+  const lat = array[index].lat;
+  const lon = array[index].lon;
+
+  return { lat, lon };
+}
+
+const getCity = (list, parent) => {
+  createDropdownMenu(list, parent);
+  const selectedCity = inputQuery.value;
+  return selectedCity;
+}
+
+const createDropdownMenu = (cityList, parent) => {
   cityList.forEach(city => {
     const option = document.createElement("option");
     option.value = city;
     parent.appendChild(option);
   })
+}
+
+async function updateWeatherData(city) {
+  const coordinates = await getCoordinates(city);
+  const weatherData = await getWeatherData(coordinates);
+  const htmlMarkup = getHtml(weatherData, city);
+  id.innerHTML = htmlMarkup;
 }
 
 async function getWeatherData({ lat, lon }) {
@@ -64,7 +81,6 @@ async function getWeatherData({ lat, lon }) {
       rainUnit: jsonResponse.daily_units.rain_sum,
       snowUnit: jsonResponse.daily_units.snowfall_sum,
     };
-    //     console.log(unit)
 
     const apparentTemp = jsonResponse.hourly.apparent_temperature[0] + unit.tempUnit;
     const currentTemp = jsonResponse.hourly.temperature_2m[0] + unit.tempUnit;
@@ -85,13 +101,6 @@ async function getWeatherData({ lat, lon }) {
   }
 }
 
-async function updateWeatherData(city) {
-  const coordinates = await getCoordinates(city);
-  const weatherData = await getWeatherData(coordinates);
-  const htmlMarkup = getHtml(weatherData, city);
-
-  id.innerHTML = htmlMarkup;
-}
 
 function getHtml(weatherData, city) {
   const htmlMarkup = `
