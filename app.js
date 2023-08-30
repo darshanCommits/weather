@@ -67,9 +67,10 @@ function populateDropdown(data) {
 
 async function getWeatherData({ lat, lon }) {
   try {
-    const hourlyParam = `temperature_2m,relativehumidity_2m,apparent_temperature`;
-    const dailyParam = `weathercode,temperature_2m_max,temperature_2m_min,rain_sum,snowfall_sum`;
-    const apiEndpoint = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=${hourlyParam}&daily=${dailyParam}&timezone=auto`;
+    const hourlyParams = ['temperature_2m', 'relativehumidity_2m', 'apparent_temperature'];
+    const dailyParams = ['weathercode', 'temperature_2m_max', 'temperature_2m_min', 'rain_sum', 'snowfall_sum'];
+    const apiEndpoint = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=${hourlyParams.join(',')}&daily=${dailyParams.join(',')}&timezone=auto`;
+    
     const fetchPromise = await fetch(apiEndpoint, { mode: "cors" });
     const jsonResponse = await fetchPromise.json();
     console.log(jsonResponse);
