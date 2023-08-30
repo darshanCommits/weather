@@ -66,19 +66,21 @@ function populateDropdown(data) {
 }
 
 async function getWeatherData({ lat, lon }) {
-  try {
-    const hourlyParams = ['temperature_2m', 'relativehumidity_2m', 'apparent_temperature'];
+
+   const hourlyParams = ['temperature_2m', 'relativehumidity_2m', 'apparent_temperature'];
     const dailyParams = ['weathercode', 'temperature_2m_max', 'temperature_2m_min', 'rain_sum', 'snowfall_sum'];
     const apiEndpoint = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=${hourlyParams.join(',')}&daily=${dailyParams.join(',')}&timezone=auto`;
-    
+  
+  try {
     const fetchPromise = await fetch(apiEndpoint, { mode: "cors" });
-    const jsonResponse = await fetchPromise.json();
-    console.log(jsonResponse);
     if (!fetchPromise.ok) {
       throw new Error(
         "Network response : Not Okay.\nTry checking typos in apiEndpoint variable."
       );
     }
+
+    const jsonResponse = await fetchPromise.json();
+    console.log(jsonResponse);
 
     const unit = {
       tempUnit: jsonResponse.hourly_units.temperature_2m,
@@ -87,13 +89,16 @@ async function getWeatherData({ lat, lon }) {
       snowUnit: jsonResponse.daily_units.snowfall_sum,
     };
 
-    const apparentTemp =
-      jsonResponse.hourly.apparent_temperature[0] + unit.tempUnit;
-    const currentTemp = jsonResponse.hourly.temperature_2m[0] + unit.tempUnit;
-    const humidity =
-      jsonResponse.hourly.relativehumidity_2m[0] + unit.humidityUnit;
-    const rain = jsonResponse.daily.rain_sum[0] + unit.rainUnit;
-    const snow = jsonResponse.daily.snowfall_sum[0] + unit.snowUnit;
+    const [apparentTemp, currentTemp, humidity] = [
+      jsonResponse.hourly.apparent_temperature[0],
+      jsonResponse.hourly.temperature_2m[0],
+      jsonResponse.hourly.relativehumidity_2m[0],
+    ].map((value) => value + unit.tempUnit);
+    
+    const [rain, snow] = [
+      jsonResponse.daily.rain_sum[0],
+      jsonResponse.daily.snowfall_sum[0],
+    ].map((value) => value + unit.rainUnit);
 
     return {
       currentTemp,
@@ -102,8 +107,10 @@ async function getWeatherData({ lat, lon }) {
       rain,
       snow,
     };
+    
   } catch (err) {
     console.error(err);
+    throw err
   }
 }
 
