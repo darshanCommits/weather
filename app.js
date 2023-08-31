@@ -1,92 +1,115 @@
-// const city = "Mawsynram";
 const id = document.querySelector("#weatherData");
-const inputQuery = document.querySelector("form input[type=text]");
-const form = document.querySelector("form");
-const dataList = document.querySelector("#datalist")
+const dropDown = document.querySelector("#datalist");
+console.log(dropDown)
+const searchInput = document.querySelector("#search-input");
 
-form.addEventListener("submit", async (e) => {
+let timer;
+let executeQuery = false;
+
+searchInput.addEventListener("input", (e) => {
   e.preventDefault();
-  id.classList.add("not-loaded")
-  const city = inputQuery.value.trim();
-  // console.log(city)
-  await updateWeatherData(city);
-  id.classList.add("loaded");
-})
+  executeQuery = true;
+  clearTimeout(timer);
+  timer = setTimeout(() => {
+    if (executeQuery) {
+      handleQuery();
+      console.log("happy");
+      executeQuery = false;
+    }
+  }, 300);
+});
 
-async function getCoordinates(city) {
+// handleQuery(every 1s) --> populateDropdown(data)
+// get the data from the api and extract {len,lon}
+async function handleQuery() {
+  if (searchInput.value === "" || searchInput.value.length < 1) return;
   try {
-    const apiEndpoint = `https://nominatim.openstreetmap.org/search?q=${city}&format=json`;
-    const fetchPromise = await fetch(apiEndpoint, { mode: "cors" });
-    const searchResults = await fetchPromise.json();
-    console.log(searchResults)
-    const cityList = searchResults.map(city => city.display_name);
+    const query = searchInput.value.toLowerCase().trim();
+    console.log("query", query);
 
-    // this function will fetch the selected city 
-    const selectedCity = getCity(cityList, dataList);
-    console.log(selectedCity)
+    const apiEndpoint = `https://nominatim.openstreetmap.org/search?q=${query}&format=json`;
+    const res = await fetch(apiEndpoint, { mode: "cors" });
+    const data = await res.json();
 
-    // this function will fetch the Lat and Lon of the selected city 
-    return getLL(searchResults, selectedCity);
-  }
-  catch (err) {
-    console.error(err);
+    populateDropdown(data);
+
+    console.log(data);
+  } catch (error) {
+    console.error(error);
   }
 }
 
-const getLL = (array, city) => {
-  const index = array.findIndex(obj => obj.display_name === city);
-  console.log(index)
-  const lat = array[index].lat;
-  const lon = array[index].lon;
+// populateDropdown(data:CityDataObject) => pass {lat,lon} to getWeatherr() and fill the weather data in html
 
+const getCoordinates = (array) => {
+  const { lat, lon } = array.find(obj => obj.addresstype === "city");
   return { lat, lon };
+};
+
+const setHTML = async () => {
+  id.classList.add("not-loaded");
+
+  const { lat, lon } = getCoordinates(cities);
+  const weather = await getWeatherData({ lat, lon });
+  const htmlMarkup = getHtml(weather, cityName);
+
+  id.classList.add("loaded");
+
+  if (htmlMarkup)
+    id.innerHTML = htmlMarkup;
 }
 
-const getCity = (list, parent) => {
-  createDropdownMenu(list, parent);
-  const selectedCity = inputQuery.value;
-  return selectedCity;
+const setDropdownHtml = city => {
+  const option = document.createElement("option");
+  const cityName = `${city.addresstype.toString()} : ${city.display_name.toString()}`
+
+  option.value = cityName;
+  option.textContent = cityName;
+
+  option.addEventListener("click", setHTML);
+  dropDown.appendChild(option);
 }
 
-const createDropdownMenu = (cityList, parent) => {
-  cityList.forEach(city => {
-    const option = document.createElement("option");
-    option.value = city;
-    parent.appendChild(option);
-  })
+function populateDropdown(cities) {
+  dropDown.innerHTML = "";
+  cities.forEach(city => setDropdownHtml(city));
 }
 
-async function updateWeatherData(city) {
-  const coordinates = await getCoordinates(city);
-  const weatherData = await getWeatherData(coordinates);
-  const htmlMarkup = getHtml(weatherData, city);
-  id.innerHTML = htmlMarkup;
+async function fetchWeatherData(lat, lon) {
+  const hourlyParam = `temperature_2m,relativehumidity_2m,apparent_temperature`;
+  const dailyParam = `weathercode,temperature_2m_max,temperature_2m_min,rain_sum,snowfall_sum`;
+  const apiEndpoint = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=${hourlyParam}&daily=${dailyParam}&timezone=auto`;
+
+  try {
+    const response = await fetch(apiEndpoint, { mode: "cors" });
+
+    if (!fetchPromise.ok)
+      throw new Error(`Network response : Not Okay.
+      \nTry checking typos in apiEndpoint variable.`);
+
+    return await response.json();
+
+  } catch (error) {
+    throw new Error(`Failed to fetch weather data: ${error.message}`);
+  }
 }
 
 async function getWeatherData({ lat, lon }) {
   try {
-    const hourlyParam = `temperature_2m,relativehumidity_2m,apparent_temperature`;
-    const dailyParam = `weathercode,temperature_2m_max,temperature_2m_min,rain_sum,snowfall_sum`;
-    const apiEndpoint = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=${hourlyParam}&daily=${dailyParam}&timezone=auto`
-    const fetchPromise = await fetch(apiEndpoint, { mode: "cors" });
-    const jsonResponse = await fetchPromise.json();
-    //     console.log(jsonResponse)
-    if (!fetchPromise.ok) {
-      throw new Error("Network response : Not Okay.\nTry checking typos in apiEndpoint variable.");
-    }
+    const jsonResponse = await fetchWeatherData(lat, lon)
 
     const unit = {
-      tempUnit: jsonResponse.hourly_units.temperature_2m,
-      humidityUnit: jsonResponse.hourly_units.relativehumidity_2m,
-      rainUnit: jsonResponse.daily_units.rain_sum,
-      snowUnit: jsonResponse.daily_units.snowfall_sum,
+      temp: jsonResponse.hourly_units.temperature_2m,
+      humidity: jsonResponse.hourly_units.relativehumidity_2m,
+      rain: jsonResponse.daily_units.rain_sum,
+      snow: jsonResponse.daily_units.snowfall_sum,
     };
 
-    const apparentTemp = jsonResponse.hourly.apparent_temperature[0] + unit.tempUnit;
-    const currentTemp = jsonResponse.hourly.temperature_2m[0] + unit.tempUnit;
-    const humidity = jsonResponse.hourly.relativehumidity_2m[0] + unit.humidityUnit;
-    const rain = jsonResponse.daily.rain_sum[0] + unit.rainUnit;
-    const snow = jsonResponse.daily.snowfall_sum[0] + unit.snowUnit;
+    const apparentTemp = jsonResponse.hourly.apparent_temperature[0] + unit.temp;
+    const currentTemp = jsonResponse.hourly.temperature_2m[0] + unit.temp;
+    const humidity = jsonResponse.hourly.relativehumidity_2m[0] + unit.humidity;
+    const rain = jsonResponse.daily.rain_sum[0] + unit.rain;
+    const snow = jsonResponse.daily.snowfall_sum[0] + unit.snow;
 
     return {
       currentTemp,
@@ -94,13 +117,12 @@ async function getWeatherData({ lat, lon }) {
       humidity,
       rain,
       snow,
-    }
-  }
-  catch (err) {
-    console.error(err);
+    };
+
+  } catch (err) {
+    throw new Error(`Failed to Fetch weather data : ${err.message}`);
   }
 }
-
 
 function getHtml(weatherData, city) {
   const htmlMarkup = `
@@ -117,21 +139,21 @@ function getHtml(weatherData, city) {
       <h1>Humidity </h1>
       <h1>${weatherData.humidity}</h1>
     </div>
-`
+`;
   if (weatherData.rain !== "0mm")
     htmlMarkup += `
     <div>
       <h1>Rain </h1>
       <h1>${weatherData.rain}</h1>
     </div>
-`
+`;
   if (weatherData.snow !== "0cm")
     htmlMarkup += `
     <div>
       <h1>Snow </h1>
       <h1>${weatherData.snow}</h1>
     </div>
-`
+`;
   return htmlMarkup;
 }
 
