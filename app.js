@@ -104,16 +104,8 @@ async function fetchWeatherData(lat, lon) {
 }
 
 async function getWeatherData({ lat, lon }) {
-
-   const hourlyParams = ['temperature_2m', 'relativehumidity_2m', 'apparent_temperature'];
-    const dailyParams = ['weathercode', 'temperature_2m_max', 'temperature_2m_min', 'rain_sum', 'snowfall_sum'];
-    const apiEndpoint = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=${hourlyParams.join(',')}&daily=${dailyParams.join(',')}&timezone=auto`;
-  
   try {
     const jsonResponse = await fetchWeatherData(lat, lon)
-
-    const jsonResponse = await fetchPromise.json();
-    console.log(jsonResponse);
 
     const unit = {
       temp: jsonResponse.hourly_units.temperature_2m,
@@ -122,16 +114,11 @@ async function getWeatherData({ lat, lon }) {
       snow: jsonResponse.daily_units.snowfall_sum,
     };
 
-    const [apparentTemp, currentTemp, humidity] = [
-      jsonResponse.hourly.apparent_temperature[0],
-      jsonResponse.hourly.temperature_2m[0],
-      jsonResponse.hourly.relativehumidity_2m[0],
-    ].map((value) => value + unit.tempUnit);
-    
-    const [rain, snow] = [
-      jsonResponse.daily.rain_sum[0],
-      jsonResponse.daily.snowfall_sum[0],
-    ].map((value) => value + unit.rainUnit);
+    const apparentTemp = jsonResponse.hourly.apparent_temperature[0] + unit.temp;
+    const currentTemp = jsonResponse.hourly.temperature_2m[0] + unit.temp;
+    const humidity = jsonResponse.hourly.relativehumidity_2m[0] + unit.humidity;
+    const rain = jsonResponse.daily.rain_sum[0] + unit.rain;
+    const snow = jsonResponse.daily.snowfall_sum[0] + unit.snow;
 
     return {
       currentTemp,
@@ -179,69 +166,3 @@ function getHtml(weatherData, city) {
   return htmlMarkup;
 }
 
-/* form.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  id.classList.add("not-loaded");
-  const city = inputQuery.value.trim();
-  // console.log(city)
-  await updateWeatherData(city);
-  id.classList.add("loaded");
-}); */
-
-/* async function createDropdownMenu(options, parent) {
-  parent.innerHTML = ""; // Clear existing options
-  options.forEach((option) => {
-    const optionElement = document.createElement("option");
-    optionElement.value = option;
-    parent.appendChild(optionElement);
-  });
-} */
-
-/* const getCity = (list, parent) => {
-  createDropdownMenu(list, parent);
-  const selectedCity = inputQuery.value;
-  return selectedCity;
-}; */
-
-/* async function updateWeatherData(city) {
-  const coordinates = await getCoordinates(city);
-  const weatherData = await getWeatherData(coordinates);
-  const htmlMarkup = getHtml(weatherData, city);
-  id.innerHTML = htmlMarkup;
-} */
-/* async function getCoordinates(city) {
-  try {
-    const apiEndpoint = `https://nominatim.openstreetmap.org/search?q=${query}&format=json`;
-    const fetchPromise = await fetch(apiEndpoint, { mode: "cors" });
-    const searchResults = await fetchPromise.json();
-    console.log(searchResults);
-    // Create an array of formatted options for the dropdown
-    const dropdownOptions = searchResults.map((result) => {
-      return `${result.display_name} - ${result.addresstype}`;
-    });
-
-    // Call the function to create the dropdown with these options
-    createDropdownMenu(dropdownOptions, dataList);
-    const cityList = searchResults.map((city) => city.display_name);
-
-    // this function will fetch the selected city
-    const selectedCity = getCity(cityList, dataList);
-    console.log(selectedCity);
-    console.log(searchResults); 
-    const { lat, lon } = searchResults.find(
-      (result) => result.addresstype === "city"
-    );
-
-    // this function will fetch the Lat and Lon of the selected city
-    return { lat, lon };
-  } catch (err) {
-    console.error(err);
-  }
-} 
-const getLL = (array, city) => {
-  const { lat, lon } = array.find((obj) => obj.addresstype === "city");
-  console.log(index);
-  const lat = array[index].lat;
-  const lon = array[index].lon;
-  return { lat, lon };
-};*/
