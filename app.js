@@ -1,6 +1,7 @@
 const id = document.querySelector("#weatherData");
 const dropDown = document.querySelector("#datalist");
 const searchInput = document.querySelector("#search-input");
+const cityForm = document.querySelector("form");
 
 let timer;
 let executeQuery = false;
@@ -16,14 +17,11 @@ searchInput.addEventListener("input", (e) => {
       const data = await fetchAPI();
       // This will update datalist
       populateDropdown(data);
-      const optionArray = [...dropDown.children]
 
-      optionArray.forEach(city =>
-        city.addEventListener("keydown", (e) => {
-          e.preventDefault();
-          console.log("hello");
-        }))
-
+      cityForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        console.log("happy")
+      })
       executeQuery = false;
     }
   }, 300);
