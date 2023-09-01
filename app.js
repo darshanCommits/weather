@@ -1,6 +1,5 @@
 const id = document.querySelector("#weatherData");
 const dropDown = document.querySelector("#datalist");
-console.log(dropDown)
 const searchInput = document.querySelector("#search-input");
 
 let timer;
@@ -10,30 +9,41 @@ searchInput.addEventListener("input", (e) => {
   e.preventDefault();
   executeQuery = true;
   clearTimeout(timer);
-  timer = setTimeout(() => {
+
+  timer = setTimeout(async () => {
+
     if (executeQuery) {
-      handleQuery();
-      console.log("happy");
+      const data = await fetchAPI();
+      // This will update datalist
+      populateDropdown(data);
+      const optionArray = [...dropDown.children]
+
+      optionArray.forEach(city =>
+        city.addEventListener("keydown", (e) => {
+          e.preventDefault();
+          console.log("hello");
+        }))
+
       executeQuery = false;
     }
   }, 300);
 });
 
-// handleQuery(every 1s) --> populateDropdown(data)
+// fetchAPI(every 1s) --> populateDropdown(data)
 // get the data from the api and extract {len,lon}
-async function handleQuery() {
+async function fetchAPI() {
+  // ERROR checking for empty string
   if (searchInput.value === "" || searchInput.value.length < 1) return;
+
   try {
     const query = searchInput.value.toLowerCase().trim();
-    console.log("query", query);
 
     const apiEndpoint = `https://nominatim.openstreetmap.org/search?q=${query}&format=json`;
     const res = await fetch(apiEndpoint, { mode: "cors" });
     const data = await res.json();
 
-    populateDropdown(data);
+    return data;
 
-    console.log(data);
   } catch (error) {
     console.error(error);
   }
@@ -50,6 +60,7 @@ const setHTML = async () => {
   id.classList.add("not-loaded");
 
   const { lat, lon } = getCoordinates(cities);
+  console.log({ lat, lon })
   const weather = await getWeatherData({ lat, lon });
   const htmlMarkup = getHtml(weather, cityName);
 
@@ -62,16 +73,14 @@ const setHTML = async () => {
 const setDropdownHtml = city => {
   const option = document.createElement("option");
   const cityName = `${city.addresstype.toString()} : ${city.display_name.toString()}`
-
   option.value = cityName;
   option.textContent = cityName;
-
-  option.addEventListener("click", setHTML);
   dropDown.appendChild(option);
 }
 
 function populateDropdown(cities) {
   dropDown.innerHTML = "";
+  console.log(cities)
   cities.forEach(city => setDropdownHtml(city));
 }
 
