@@ -2,30 +2,62 @@ const id = document.querySelector("#weatherData");
 const dropDown = document.querySelector("#datalist");
 const searchInput = document.querySelector("#search-input");
 const cityForm = document.querySelector("form");
+const processedData = {};
 
-let timer;
+let timer, data;
 let executeQuery = false;
+let ev1 = false;
 
 searchInput.addEventListener("input", (e) => {
   e.preventDefault();
-  executeQuery = true;
+  // executeQuery = true;
+  if (ev1) { console.log(1); return };
   clearTimeout(timer);
-
+  console.log("bruh")
   timer = setTimeout(async () => {
+    // if (!executeQuery) return;
 
-    if (executeQuery) {
-      const data = await fetchAPI();
-      // This will update datalist
-      populateDropdown(data);
+    data = await fetchAPI();
 
-      cityForm.addEventListener("submit", (e) => {
-        e.preventDefault();
-        console.log("happy")
-      })
-      executeQuery = false;
-    }
+    data.forEach((x) => {
+      const { display_name, lat, lon } = x;
+      processedData[display_name] = { lat, lon };
+    });
+
+    const cities = Object.keys(processedData);
+    console.log(processedData)
+    populateDropdown(cities)
+
+    ev1 = true;
   }, 300);
 });
+
+cityForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (ev1) {
+    ev1 = false;
+    const { lat, lon } = processedData[searchInput.value]
+    const res = await fetchWeatherData(lat, lon);
+    const resres = await getWeatherData(res)
+    const markup = getHtml(resres, "Udaipur");
+    console.log(markup)
+    setHTML(markup)
+
+    id.classList.add("loaded");
+
+    // console.log(searchInput.value)
+  }
+});
+
+const finalize = async (e) => {
+  e.preventDefault();
+
+  const city = selectedCity;
+  const fetchedWeatherData = await fetchWeatherData(lat, lon);
+  const weatherData = await getWeatherData(fetchedWeatherData);
+  const htmlMarkup = getHtml(weatherData, city);
+  setHTML(htmlMarkup)
+}
 
 // fetchAPI(every 1s) --> populateDropdown(data)
 // get the data from the api and extract {len,lon}
@@ -49,36 +81,21 @@ async function fetchAPI() {
 
 // populateDropdown(data:CityDataObject) => pass {lat,lon} to getWeatherr() and fill the weather data in html
 
-const getCoordinates = (array) => {
-  const { lat, lon } = array.find(obj => obj.addresstype === "city");
-  return { lat, lon };
-};
 
-const setHTML = async () => {
-  id.classList.add("not-loaded");
-
-  const { lat, lon } = getCoordinates(cities);
-  console.log({ lat, lon })
-  const weather = await getWeatherData({ lat, lon });
-  const htmlMarkup = getHtml(weather, cityName);
-
-  id.classList.add("loaded");
-
-  if (htmlMarkup)
-    id.innerHTML = htmlMarkup;
+const setHTML = async (htmlMarkup) => {
+  id.innerHTML = htmlMarkup;
 }
 
 const setDropdownHtml = city => {
   const option = document.createElement("option");
-  const cityName = `${city.addresstype.toString()} : ${city.display_name.toString()}`
-  option.value = cityName;
-  option.textContent = cityName;
+  // const cityName = `${city.addresstype.toString()} : ${city.display_name.toString()}`
+  option.value = city;
+  option.textContent = city;
   dropDown.appendChild(option);
 }
 
 function populateDropdown(cities) {
   dropDown.innerHTML = "";
-  console.log(cities)
   cities.forEach(city => setDropdownHtml(city));
 }
 
@@ -90,7 +107,7 @@ async function fetchWeatherData(lat, lon) {
   try {
     const response = await fetch(apiEndpoint, { mode: "cors" });
 
-    if (!fetchPromise.ok)
+    if (!response.ok)
       throw new Error(`Network response : Not Okay.
       \nTry checking typos in apiEndpoint variable.`);
 
@@ -101,10 +118,8 @@ async function fetchWeatherData(lat, lon) {
   }
 }
 
-async function getWeatherData({ lat, lon }) {
+async function getWeatherData(jsonResponse) {
   try {
-    const jsonResponse = await fetchWeatherData(lat, lon)
-
     const unit = {
       temp: jsonResponse.hourly_units.temperature_2m,
       humidity: jsonResponse.hourly_units.relativehumidity_2m,
@@ -132,7 +147,7 @@ async function getWeatherData({ lat, lon }) {
 }
 
 function getHtml(weatherData, city) {
-  const htmlMarkup = `
+  let htmlMarkup = `
     <h1>${city}</h1>
     <div>
       <h1>Temprature </h1>
