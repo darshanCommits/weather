@@ -3,12 +3,10 @@ const dropDown = document.querySelector("#datalist");
 const searchInput = document.querySelector("#search-input");
 const cityForm = document.querySelector("form");
 const cityObject = {};
-
 let timer;
 let cityJson;
 
 searchInput.addEventListener("input", e => events.processSearch(e));
-
 cityForm.addEventListener("submit", e => events.finalize(e));
 
 const api = {
@@ -93,8 +91,6 @@ const ui = {
 
 	populateDropdown: cities => {
 		dropDown.innerHTML = "";
-		// const arr = [];
-		// cities.reduce(c)
 		cities.forEach(city => {
 			const option = ui.createDropdownOption(city);
 			dropDown.appendChild(option);
@@ -106,7 +102,6 @@ const ui = {
 		option.value = city;
 		option.textContent = city;
 		return option;
-		// dropDown.appendChild(option);
 	},
 };
 
@@ -122,6 +117,7 @@ const events = {
 
 		const res = await api.fetchWeatherData(lat, lon);
 		const resres = processData.getWeatherData(res);
+		console.log(resres);
 		const markup = ui.getHtml(resres, cityName);
 
 		id.classList.remove("not-loaded");
