@@ -159,10 +159,12 @@ const processData = {
 				rain: res.daily_units.rain_sum,
 				snow: res.daily_units.snowfall_sum,
 			};
+			const date = new Date();
+			const hour = date.getHours()
 
-			const apparentTemp = res.hourly.apparent_temperature[0] + unit.temp;
-			const currentTemp = res.hourly.temperature_2m[0] + unit.temp;
-			const humidity = res.hourly.relativehumidity_2m[0] + unit.humidity;
+			const apparentTemp = res.hourly.apparent_temperature[hour] + unit.temp;
+			const currentTemp = res.hourly.temperature_2m[hour] + unit.temp;
+			const humidity = res.hourly.relativehumidity_2m[hour] + unit.humidity;
 			const rain = res.daily.rain_sum[0] + unit.rain;
 			const snow = res.daily.snowfall_sum[0] + unit.snow;
 
