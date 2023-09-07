@@ -7,76 +7,40 @@ const processedData = {};
 let timer;
 let data;
 
-const finalize = async e => {
-	e.preventDefault();
-	const input = searchInput.value;
-	const cityName = input.split(",")[0];
-	const { lat, lon } = processedData[input];
+searchInput.addEventListener("input", e => events.processSearch(e));
 
-	const res = await api.fetchWeatherData(lat, lon);
-	const resres = getWeatherData(res);
-	const markup = ui.getHtml(resres, cityName);
-
-	id.classList.add("loaded");
-	ui.setHTML(markup);
-};
-
-searchInput.addEventListener("input", e => {
-	e.preventDefault();
-
-	clearTimeout(timer);
-	timer = setTimeout(async () => {
-		const input = searchInput.value;
-		console.log(input);
-
-		data = await api.fetchQuery(input);
-		console.log(data);
-
-		data.forEach(x => {
-			const { display_name, lat, lon } = x;
-			processedData[display_name] = { lat, lon };
-		});
-
-		const cities = Object.keys(processedData);
-		console.log(cities);
-		ui.populateDropdown(cities);
-	}, 300);
-});
-
-cityForm.addEventListener("submit", e => finalize(e));
-
-// fetchAPI(every 1s) --> ui.populateDropdown(data)
-// get the data from the api and extract {len,lon}
-
-function getWeatherData(jsonResponse) {
-	try {
-		const unit = {
-			temp: jsonResponse.hourly_units.temperature_2m,
-			humidity: jsonResponse.hourly_units.relativehumidity_2m,
-			rain: jsonResponse.daily_units.rain_sum,
-			snow: jsonResponse.daily_units.snowfall_sum,
-		};
-
-		const apparentTemp =
-			jsonResponse.hourly.apparent_temperature[0] + unit.temp;
-		const currentTemp = jsonResponse.hourly.temperature_2m[0] + unit.temp;
-		const humidity = jsonResponse.hourly.relativehumidity_2m[0] + unit.humidity;
-		const rain = jsonResponse.daily.rain_sum[0] + unit.rain;
-		const snow = jsonResponse.daily.snowfall_sum[0] + unit.snow;
-
-		return {
-			currentTemp,
-			apparentTemp,
-			humidity,
-			rain,
-			snow,
-		};
-	} catch (err) {
-		throw new Error(`Failed to Fetch weather data : ${err.message}`);
-	}
-}
+cityForm.addEventListener("submit", e => events.finalize(e));
 
 const api = {
+	getWeatherData: jsonResponse => {
+		try {
+			const unit = {
+				temp: jsonResponse.hourly_units.temperature_2m,
+				humidity: jsonResponse.hourly_units.relativehumidity_2m,
+				rain: jsonResponse.daily_units.rain_sum,
+				snow: jsonResponse.daily_units.snowfall_sum,
+			};
+
+			const apparentTemp =
+				jsonResponse.hourly.apparent_temperature[0] + unit.temp;
+			const currentTemp = jsonResponse.hourly.temperature_2m[0] + unit.temp;
+			const humidity =
+				jsonResponse.hourly.relativehumidity_2m[0] + unit.humidity;
+			const rain = jsonResponse.daily.rain_sum[0] + unit.rain;
+			const snow = jsonResponse.daily.snowfall_sum[0] + unit.snow;
+
+			return {
+				currentTemp,
+				apparentTemp,
+				humidity,
+				rain,
+				snow,
+			};
+		} catch (err) {
+			throw new Error(`Failed to Fetch weather data : ${err.message}`);
+		}
+	},
+
 	fetchQuery: async input => {
 		if (input === "" || input.length < 1) return;
 
@@ -166,5 +130,47 @@ const ui = {
 
 	setHTML: htmlMarkup => {
 		id.innerHTML = htmlMarkup;
+	},
+};
+
+const events = {
+	finalize: async e => {
+		e.preventDefault();
+		id.classList.remove("loaded");
+		id.classList.add("not-loaded");
+
+		const input = searchInput.value;
+		const cityName = input.split(",")[0];
+		const { lat, lon } = processedData[input];
+
+		const res = await api.fetchWeatherData(lat, lon);
+		const resres = api.getWeatherData(res);
+		const markup = ui.getHtml(resres, cityName);
+
+		id.classList.add("loaded");
+		id.classList.remove("not-loaded");
+		ui.setHTML(markup);
+	},
+
+	processSearch: async e => {
+		e.preventDefault();
+
+		clearTimeout(timer);
+		timer = setTimeout(async () => {
+			const input = searchInput.value;
+			console.log(input);
+
+			data = await api.fetchQuery(input);
+			console.log(data);
+
+			data.forEach(x => {
+				const { display_name, lat, lon } = x;
+				processedData[display_name] = { lat, lon };
+			});
+
+			const cities = Object.keys(processedData);
+			console.log(cities);
+			ui.populateDropdown(cities);
+		}, 300);
 	},
 };
