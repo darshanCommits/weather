@@ -152,6 +152,9 @@ const events = {
 
 const processData = {
 	getWeatherData: res => {
+		const date = new Date();
+		const hour = date.getHours();
+
 		try {
 			const unit = {
 				temp: res.hourly_units.temperature_2m,
@@ -159,22 +162,16 @@ const processData = {
 				rain: res.daily_units.rain_sum,
 				snow: res.daily_units.snowfall_sum,
 			};
-			const date = new Date();
-			const hour = date.getHours()
 
-			const apparentTemp = res.hourly.apparent_temperature[hour] + unit.temp;
-			const currentTemp = res.hourly.temperature_2m[hour] + unit.temp;
-			const humidity = res.hourly.relativehumidity_2m[hour] + unit.humidity;
-			const rain = res.daily.rain_sum[0] + unit.rain;
-			const snow = res.daily.snowfall_sum[0] + unit.snow;
-
-			return {
-				currentTemp,
-				apparentTemp,
-				humidity,
-				rain,
-				snow,
+			const values = {
+				apparentTemp: res.hourly.apparent_temperature[hour] + unit.temp,
+				currentTemp: res.hourly.temperature_2m[hour] + unit.temp,
+				humidity: res.hourly.relativehumidity_2m[hour] + unit.humidity,
+				rain: res.daily.rain_sum[0] + unit.rain,
+				snow: res.daily.snowfall_sum[0] + unit.snow,
 			};
+
+			return values;
 		} catch (err) {
 			throw new Error(`Failed to Fetch weather data : ${err.message}`);
 		}
