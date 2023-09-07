@@ -2,45 +2,16 @@ const id = document.querySelector("#weatherData");
 const dropDown = document.querySelector("#datalist");
 const searchInput = document.querySelector("#search-input");
 const cityForm = document.querySelector("form");
-const processedData = {};
+const cityObject = {};
 
 let timer;
-let data;
+let cityJson;
 
 searchInput.addEventListener("input", e => events.processSearch(e));
 
 cityForm.addEventListener("submit", e => events.finalize(e));
 
 const api = {
-	getWeatherData: jsonResponse => {
-		try {
-			const unit = {
-				temp: jsonResponse.hourly_units.temperature_2m,
-				humidity: jsonResponse.hourly_units.relativehumidity_2m,
-				rain: jsonResponse.daily_units.rain_sum,
-				snow: jsonResponse.daily_units.snowfall_sum,
-			};
-
-			const apparentTemp =
-				jsonResponse.hourly.apparent_temperature[0] + unit.temp;
-			const currentTemp = jsonResponse.hourly.temperature_2m[0] + unit.temp;
-			const humidity =
-				jsonResponse.hourly.relativehumidity_2m[0] + unit.humidity;
-			const rain = jsonResponse.daily.rain_sum[0] + unit.rain;
-			const snow = jsonResponse.daily.snowfall_sum[0] + unit.snow;
-
-			return {
-				currentTemp,
-				apparentTemp,
-				humidity,
-				rain,
-				snow,
-			};
-		} catch (err) {
-			throw new Error(`Failed to Fetch weather data : ${err.message}`);
-		}
-	},
-
 	fetchQuery: async input => {
 		if (input === "" || input.length < 1) return;
 
@@ -116,20 +87,26 @@ const ui = {
 		return htmlMarkup;
 	},
 
-	populateDropdown: cities => {
-		dropDown.innerHTML = "";
-		cities.forEach(city => ui.setDropdownHtml(city));
+	setHTML: htmlMarkup => {
+		id.innerHTML = htmlMarkup;
 	},
 
-	setDropdownHtml: city => {
+	populateDropdown: cities => {
+		dropDown.innerHTML = "";
+		// const arr = [];
+		// cities.reduce(c)
+		cities.forEach(city => {
+			const option = ui.createDropdownOption(city);
+			dropDown.appendChild(option);
+		});
+	},
+
+	createDropdownOption: city => {
 		const option = document.createElement("option");
 		option.value = city;
 		option.textContent = city;
-		dropDown.appendChild(option);
-	},
-
-	setHTML: htmlMarkup => {
-		id.innerHTML = htmlMarkup;
+		return option;
+		// dropDown.appendChild(option);
 	},
 };
 
@@ -141,36 +118,67 @@ const events = {
 
 		const input = searchInput.value;
 		const cityName = input.split(",")[0];
-		const { lat, lon } = processedData[input];
+		const { lat, lon } = cityObject[input];
 
 		const res = await api.fetchWeatherData(lat, lon);
-		const resres = api.getWeatherData(res);
+		const resres = processData.getWeatherData(res);
 		const markup = ui.getHtml(resres, cityName);
 
-		id.classList.add("loaded");
 		id.classList.remove("not-loaded");
+		id.classList.add("loaded");
 		ui.setHTML(markup);
 	},
 
-	processSearch: async e => {
-		e.preventDefault();
+	getCityList: async () => {
+		const input = searchInput.value;
+		cityJson = await api.fetchQuery(input);
 
+		cityJson.forEach(x => {
+			const { display_name, lat, lon } = x;
+			cityObject[display_name] = { lat, lon };
+		});
+
+		const cities = Object.keys(cityObject);
+		return cities;
+	},
+
+	processSearch: e => {
+		e.preventDefault();
+		searchInput.setAttribute("autocomplete", "off");
 		clearTimeout(timer);
 		timer = setTimeout(async () => {
-			const input = searchInput.value;
-			console.log(input);
-
-			data = await api.fetchQuery(input);
-			console.log(data);
-
-			data.forEach(x => {
-				const { display_name, lat, lon } = x;
-				processedData[display_name] = { lat, lon };
-			});
-
-			const cities = Object.keys(processedData);
-			console.log(cities);
+			const cities = await events.getCityList();
 			ui.populateDropdown(cities);
+			searchInput.setAttribute("autocomplete", "on");
 		}, 300);
+	},
+};
+
+const processData = {
+	getWeatherData: res => {
+		try {
+			const unit = {
+				temp: res.hourly_units.temperature_2m,
+				humidity: res.hourly_units.relativehumidity_2m,
+				rain: res.daily_units.rain_sum,
+				snow: res.daily_units.snowfall_sum,
+			};
+
+			const apparentTemp = res.hourly.apparent_temperature[0] + unit.temp;
+			const currentTemp = res.hourly.temperature_2m[0] + unit.temp;
+			const humidity = res.hourly.relativehumidity_2m[0] + unit.humidity;
+			const rain = res.daily.rain_sum[0] + unit.rain;
+			const snow = res.daily.snowfall_sum[0] + unit.snow;
+
+			return {
+				currentTemp,
+				apparentTemp,
+				humidity,
+				rain,
+				snow,
+			};
+		} catch (err) {
+			throw new Error(`Failed to Fetch weather data : ${err.message}`);
+		}
 	},
 };
