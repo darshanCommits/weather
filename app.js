@@ -50,38 +50,26 @@ const api = {
 };
 
 const ui = {
+	getCard: (text, value) => {
+		return `
+		   <div>
+				<h1>${text}</h1>
+				<h1>${value}</h1>
+		   </div>`;
+	},
+
 	getHtml: (weatherData, city) => {
-		let htmlMarkup = `
+		const { currentTemp, apparentTemp, humidity, rain, snow } = weatherData;
+
+		const htmlMarkup = `
     <h1>${city}</h1>
-    <div>
-      <h1>Temprature </h1>
-      <h1>${weatherData.currentTemp}</h1>
-    </div>
-    <div>
-      <h1>Feels like </h1>
-      <h1>${weatherData.apparentTemp}</h1>
-    </div>
-    <div>
-      <h1>Humidity </h1>
-      <h1>${weatherData.humidity}</h1>
-    </div>
-		`;
+    ${ui.getCard("Temperature", currentTemp)}
+    ${ui.getCard("Feels Like", apparentTemp)}
+    ${ui.getCard("Humidity", humidity)}
+    ${rain !== "0mm" ? ui.getCard("Rain", rain) : ""}
+    ${snow !== "0cm" ? ui.getCard("Snow", snow) : ""}
+  `;
 
-		if (weatherData.rain !== "0mm")
-			htmlMarkup += `
-    <div>
-      <h1>Rain </h1>
-      <h1>${weatherData.rain}</h1>
-    </div>
-		`;
-
-		if (weatherData.snow !== "0cm")
-			htmlMarkup += `
-    <div>
-      <h1>Snow </h1>
-      <h1>${weatherData.snow}</h1>
-    </div>
-		`;
 		return htmlMarkup;
 	},
 
